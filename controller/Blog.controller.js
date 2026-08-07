@@ -66,17 +66,56 @@ const getById = async (req, res, next) => {
 const getAll = async (req, res, next) => {
     try {
 
-        const Blogs = await Blogger.find({});
+        let {
+            page = 1,
+            limit = 10,
+            search,
+            sort = "createdAt",
+            order = "desc",
+        } = req.query;
 
-        if (Blogs.length === 0) {
-            return next(new HttpError("blog not found", 404));
-        }
+        page = Number(page);
 
-        res.status(200).json({
-            success: true,
-            message: " All Blog fetched successFully",
-            data: Blogs
+        limit = Number(limit);
+
+        const filter = {};
+
+        if (search) {
+            filter.coverImage = {
+                $regex: search,
+                $options: "i",
+            };
+        };
+
+        const sortOption = {
+            [sort]: order === "asc" ? 1 : -1
+        };
+
+        const totalBlog = await Blogger.countDocuments(filter);
+
+        const blogs = await Blogger
+        .find(filter)
+        .select("title slug content -_id")
+        .sort(sortOption)
+        .skip((page-1) * limit)
+        .limit(limit)
+        .lean();
+
+    if(blogs.length === 0){
+        res.status(404).json({
+            success:true,
+            message:"blog data not found"
         });
+    }
+
+    res.status(200).json({
+        success:true,
+        message:"all Blog data fetched successFully",
+        totalBlog: totalBlog,
+        totalpages: Math.ceil(totalBlog/limit),
+        currentPage: page,
+        blogs
+    });
 
     } catch (error) {
         return next(new HttpError(error.message, 500));
@@ -170,7 +209,7 @@ const getBlogComment = async (req, res, next) => {
 const deleteBlog = async (req, res, next) => {
     try {
 
-         const {id} = req.params;
+        const { id } = req.params;
 
         const Blog = await Blogger.findById(id);
 
@@ -183,7 +222,7 @@ const deleteBlog = async (req, res, next) => {
             await cloudinary.uploader.destroy(Blog.cloudinary_id);
         }
 
-         await Blog.deleteOne();
+        await Blog.deleteOne();
 
         res.status(200).json({
             success: true,
