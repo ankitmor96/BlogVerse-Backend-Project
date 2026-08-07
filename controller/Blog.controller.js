@@ -70,6 +70,8 @@ const getAll = async (req, res, next) => {
             page = 1,
             limit = 10,
             search,
+            category,
+            status,
             sort = "createdAt",
             order = "desc",
         } = req.query;
@@ -81,11 +83,27 @@ const getAll = async (req, res, next) => {
         const filter = {};
 
         if (search) {
-            filter.coverImage = {
-                $regex: search,
-                $options: "i",
-            };
+            filter.$or = [
+                {
+                    title: {
+                        $regex: search,
+                        $options: "i"
+                    },
+                    excerpt: {
+                        $regex: search,
+                        $options: "i"
+                    },
+                },
+            ];
         };
+
+        if (category) {
+            filter.category = category;
+        }
+
+        if (status) {
+            filter.status = status;
+        }
 
         const sortOption = {
             [sort]: order === "asc" ? 1 : -1
@@ -94,28 +112,28 @@ const getAll = async (req, res, next) => {
         const totalBlog = await Blogger.countDocuments(filter);
 
         const blogs = await Blogger
-        .find(filter)
-        .select("title slug content -_id")
-        .sort(sortOption)
-        .skip((page-1) * limit)
-        .limit(limit)
-        .lean();
+            .find(filter)
+            .select("title slug content -_id")
+            .sort(sortOption)
+            .skip((page - 1) * limit)
+            .limit(limit)
+            .lean();
 
-    if(blogs.length === 0){
-        res.status(404).json({
-            success:true,
-            message:"blog data not found"
+        if (blogs.length === 0) {
+            res.status(404).json({
+                success: true,
+                message: "blog data not found"
+            });
+        }
+
+        res.status(200).json({
+            success: true,
+            message: "all Blog data fetched successFully",
+            totalBlog: totalBlog,
+            totalpages: Math.ceil(totalBlog / limit),
+            currentPage: page,
+            blogs
         });
-    }
-
-    res.status(200).json({
-        success:true,
-        message:"all Blog data fetched successFully",
-        totalBlog: totalBlog,
-        totalpages: Math.ceil(totalBlog/limit),
-        currentPage: page,
-        blogs
-    });
 
     } catch (error) {
         return next(new HttpError(error.message, 500));
