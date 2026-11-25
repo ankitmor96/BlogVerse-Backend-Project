@@ -13,7 +13,7 @@ dotenv.config({ path: "./.env" });
 const app = express();
 
 app.use(cors({
-    origin: "http://localhost:5173",
+    origin: ["http://localhost:5173","https://tamaro-frontend-url.com"],
     methods: ["GET", "POST", "PATCH", "PUT", "DELETE"],
     credentials: true
 }));
