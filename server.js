@@ -6,10 +6,17 @@ import userRoutes from "./routes/user.routes.js";
 import BlogRouets from "./routes/Blog.routes.js";
 import categoryRoutes from "./routes/category.routes.js";
 import commentRoutes from "./routes/comment.routes.js";
+import cors from "cors";
 
 dotenv.config({ path: "./.env" });
 
 const app = express();
+
+app.use(cors({
+    origin: "http://localhost:5173",
+    methods: ["GET", "POST", "PATCH", "PUT", "DELETE"],
+    credentials: true
+}));
 
 app.use(express.json());
 
@@ -17,9 +24,9 @@ app.use("/users", userRoutes);
 
 app.use("/blogs", BlogRouets);
 
-app.use("/categories" , categoryRoutes);
+app.use("/categories", categoryRoutes);
 
-app.use("/comments" , commentRoutes);
+app.use("/comments", commentRoutes);
 
 app.get("/", (req, res, next) => {
     res.send("hello from server");
