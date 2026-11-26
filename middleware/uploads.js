@@ -53,22 +53,29 @@ const createUploads = ({
         },
     });
 
-    return multer ({
+    return multer({
         storage,
-        limits:{
+        limits: {
             fileSize
         },
-        fileFilter:(req,file,cb)=>{
-         if(MimeType.length && !MimeType.includes(file.mimetype)){
-            return cb (new Error(`please enter valid mimtype , allowed mimtype : ${MimeType.join(", ")} `),false);
-         }
+        fileFilter: (req, file, cb) => {
+            if (MimeType.length && !MimeType.includes(file.mimetype)) {
+                return cb(
+                    new Error(
+                        `Please enter valid mimetype, allowed mimetypes: ${MimeType.join(", ")}`
+                    ),
+                    false
+                );
+            }
+
+            return cb(null, true);
         },
     });
 };
 
 export const BlogUploads = createUploads({
     folder: "BlogVerse/coverImage",
-    allowed_formats: ["jpg","jpeg","png","webp"],
+    allowed_formats: ["jpg", "jpeg", "png", "webp"],
     MimeType: [
         "image/jpg",
         "image/png",
@@ -77,9 +84,9 @@ export const BlogUploads = createUploads({
 });
 
 export const UserUploads = createUploads({
-    folder : "BlogVerse/ProfileImage",
-    allowed_formats : ["jpg","jpeg","png","webp"],
-    MimeType : [
+    folder: "BlogVerse/ProfileImage",
+    allowed_formats: ["jpg", "jpeg", "png", "webp"],
+    MimeType: [
         "image/jpg",
         "image/png",
         "image/jpeg"
