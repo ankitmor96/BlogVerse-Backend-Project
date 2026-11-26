@@ -23,11 +23,11 @@ const addBlog = async (req, res, next) => {
             content,
             excerpt,
             category,
-            tags: [tags],
+            tags: Array.isArray(tags) ? tags : [tags],
             status,
             coverImage: req.file?.path || null,
             cloudinary_id: req.file?.filename || null,
-            author: req.user._id  // Relationship in user by blog modal
+            author: req.user._id
         });
 
         res.status(201).json({
@@ -46,16 +46,16 @@ const getById = async (req, res, next) => {
 
         const { id } = req.params;
 
-        const Blog = await Blogger.findById(id);
+        const blog = await Blogger.findById(id);
 
-        if (!Blog) {
+        if (!blog) {
             return next(new HttpError("blog id not found", 404));
         }
 
         res.status(200).json({
             success: true,
             message: "Blog fetched successFully",
-            data: Blog
+            blog  // ✅ "blog" key — frontend ma data.blog
         });
 
     } catch (error) {
@@ -77,25 +77,16 @@ const getAll = async (req, res, next) => {
         } = req.query;
 
         page = Number(page);
-
         limit = Number(limit);
 
         const filter = {};
 
         if (search) {
             filter.$or = [
-                {
-                    title: {
-                        $regex: search,
-                        $options: "i"
-                    },
-                    excerpt: {
-                        $regex: search,
-                        $options: "i"
-                    },
-                },
+                { title: { $regex: search, $options: "i" } },
+                { excerpt: { $regex: search, $options: "i" } },
             ];
-        };
+        }
 
         if (category) {
             filter.category = category;
@@ -113,26 +104,27 @@ const getAll = async (req, res, next) => {
 
         const blogs = await Blogger
             .find(filter)
-            .select("title slug content -_id")
             .sort(sortOption)
             .skip((page - 1) * limit)
             .limit(limit)
             .lean();
 
+        // ✅ return umero — double response no crash fix
         if (blogs.length === 0) {
-            res.status(404).json({
+            return res.status(200).json({
                 success: true,
-                message: "blog data not found"
+                message: "blog data not found",
+                blogs: []
             });
         }
 
         res.status(200).json({
             success: true,
             message: "all Blog data fetched successFully",
-            totalBlog: totalBlog,
+            totalBlog,
             totalpages: Math.ceil(totalBlog / limit),
             currentPage: page,
-            blogs
+            blogs  // ✅ hve _id, coverImage, category, status badhu aashe
         });
 
     } catch (error) {
@@ -143,11 +135,12 @@ const getAll = async (req, res, next) => {
 const updateBlog = async (req, res, next) => {
     try {
 
-        const Updates = req.params.id || req.Blog._id;
+        // ✅ req.Blog._id → req.params.id fix
+        const blogId = req.params.id;
 
-        const Blog = await Blogger.findById(Updates);
+        const blog = await Blogger.findById(blogId);
 
-        if (!Blog) {
+        if (!blog) {
             return next(new HttpError("Blog not found", 404));
         }
 
@@ -163,30 +156,27 @@ const updateBlog = async (req, res, next) => {
             allowedFields.includes(field));
 
         if (!isValidUpdates) {
-            return next(new HttpError("Invalid update fields", 404));
+            return next(new HttpError("Invalid update fields", 400));
         }
 
         updates.forEach((update) => {
-            Blog[update] = req.body[update];
+            blog[update] = req.body[update];
         });
 
         if (req.file) {
-            if (Blog.cloudinary_id) {
-
-                await cloudinary.uploader.destroy(Blog.cloudinary_id);
-
+            if (blog.cloudinary_id) {
+                await cloudinary.uploader.destroy(blog.cloudinary_id);
             }
-
-            Blog.coverImage = req.file.path;
-            Blog.cloudinary_id = req.file.filename;
+            blog.coverImage = req.file.path;
+            blog.cloudinary_id = req.file.filename;
         }
 
-        await Blog.save();
+        await blog.save();
 
         res.status(200).json({
             success: true,
             message: "Blog update successFully",
-            data: Blog
+            data: blog
         });
 
     } catch (error) {
@@ -208,9 +198,8 @@ const getBlogComment = async (req, res, next) => {
         });
 
         if (!blog) {
-            return next(new HttpError("user not found", 404));
+            return next(new HttpError("blog not found", 404));
         }
-
 
         res.status(200).json({
             success: true,
@@ -219,28 +208,27 @@ const getBlogComment = async (req, res, next) => {
         });
 
     } catch (error) {
-        return next(new HttpError(error.messahe, 500));
+        // ✅ error.messahe typo fix → error.message
+        return next(new HttpError(error.message, 500));
     }
 };
-
 
 const deleteBlog = async (req, res, next) => {
     try {
 
         const { id } = req.params;
 
-        const Blog = await Blogger.findById(id);
+        const blog = await Blogger.findById(id);
 
-
-        if (!Blog) {
+        if (!blog) {
             return next(new HttpError("blog not found", 404));
         }
 
-        if (Blog.cloudinary_id) {
-            await cloudinary.uploader.destroy(Blog.cloudinary_id);
+        if (blog.cloudinary_id) {
+            await cloudinary.uploader.destroy(blog.cloudinary_id);
         }
 
-        await Blog.deleteOne();
+        await blog.deleteOne();
 
         res.status(200).json({
             success: true,
@@ -252,4 +240,4 @@ const deleteBlog = async (req, res, next) => {
     }
 };
 
-export default { addBlog, getById, getAll, updateBlog, deleteBlog };
+export default { addBlog, getById, getAll, updateBlog, deleteBlog, getBlogComment };

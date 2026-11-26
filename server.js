@@ -12,74 +12,50 @@ dotenv.config({ path: "./.env" });
 
 const app = express();
 
+// ✅ CORS fix — all origins allow (development mate)
 app.use(cors({
-    origin: ["http://localhost:5173","https://tamaro-frontend-url.com"],
+    origin: "*",
     methods: ["GET", "POST", "PATCH", "PUT", "DELETE"],
-    credentials: true
+    credentials: false
 }));
 
 app.use(express.json());
 
 app.use("/users", userRoutes);
-
 app.use("/blogs", BlogRouets);
-
 app.use("/categories", categoryRoutes);
-
 app.use("/comments", commentRoutes);
 
-app.get("/", (req, res, next) => {
-    res.send("hello from server");
+app.get("/", (req, res) => {
+    res.send("BlogVerse Server is Running!");
 });
 
+// 404 handler
 app.use((req, res, next) => {
     return next(new HttpError("route not found", 404));
 });
 
+// Global error handler
 app.use((error, req, res, next) => {
     if (res.headersSent) {
         return next(error);
     }
-
     res.status(error.statusCode || 500).json({
+        success: false,
         message: error.message || "internal server error"
     });
 });
 
-const StartServer = async (req, res, next) => {
+const StartServer = async () => {
     try {
         const port = process.env.PORT || 5000;
-
         await ConnectDB();
-
-        app.listen(port, (error) => {
-            if (error) {
-                console.log(error);
-            }
+        app.listen(port, () => {
             console.log(`server has runing on port ${port}`);
         });
-
     } catch (error) {
-        return next(new HttpError(error.message, 500));
+        console.log(error.message);
     }
 };
 
 StartServer();
-
-// const virtualBlog = async () => {
-//     try {
-
-//         const user = await User.findById(id).populate("Blogs");
-
-//         console.log(user);
-//         console.log("Blog :", user.Blogs );
-
-//     } catch (error) {
-//         console.log(error.message);
-//     }
-
-// };
-
-// virtualBlog();
-
-
