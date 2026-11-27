@@ -1,27 +1,19 @@
-import { Schema } from "mongoose";
-import registerSchema from "../validation/registerSchema.js";
+import HttpError from "./HttpError.js";
 
-const validate = (Schema) => (req,res,next)=>{
-           try{
+// ✅ validate middleware — properly fixed
+const validate = (Schema) => (req, res, next) => {
 
-             const {error,value} = Schema.
-             validate(req.body, {
-               
-                abortEarly:true,
-                allowUnkown:false,
-            });
+    const { error } = Schema.validate(req.body, {
+        abortEarly: true,
+        allowUnknown: false   // ✅ "allowUnkown" typo fix
+    });
 
-            if(error){
-                throw new Error(error.details[0].message,400);
-            }
+    if (error) {
+        // ✅ throw ni jagye next() use karyu — Express error handler proper kaam karse
+        return next(new HttpError(error.details[0].message, 400));
+    }
 
-            next();
-
-            return value;
-
-           }catch(error){
-            throw new Error(error.message,500);
-           }
+    next();
 };
 
 export default validate;
